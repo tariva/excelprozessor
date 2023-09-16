@@ -130,3 +130,6 @@ dist
 .pnp.*
 original/sorger-lagerbelastungen.csv
 original/sorger-starre-stützen.csv
+excelprozessor-win.exe
+excelprozessor-macos
+excelprozessor-linux
