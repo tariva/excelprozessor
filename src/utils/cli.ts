@@ -2,6 +2,8 @@ import fs from "fs-extra";
 import path from "path";
 import { copyToTmp } from "./fileHandler";
 import checkbox from "@inquirer/checkbox";
+import confirm from "@inquirer/confirm";
+import select from "@inquirer/select";
 
 const selectExcelFiles = async (directory: string): Promise<string[]> => {
   const files = await fs.readdir(directory);
@@ -24,7 +26,30 @@ const selectExcelFiles = async (directory: string): Promise<string[]> => {
 
   return selectedFiles;
 };
+const selectExcelFile = async (directory: string): Promise<string> => {
+  const files = await fs.readdir(directory);
+  const excelFiles = files.filter(
+    (file) =>
+      file.endsWith(".xlsx") || file.endsWith(".xls") || file.endsWith(".csv")
+  );
 
+  if (excelFiles.length === 0) {
+    console.log("No Excel files found in directory:", directory);
+    return "";
+  }
+
+  const choices = excelFiles.map((file) => ({ name: file, value: file }));
+
+  const selectedFiles = await select({
+    message: "Select Excel files to process:",
+    choices: choices,
+  });
+
+  return selectedFiles;
+};
+const ask = async (message: string): Promise<boolean> => {
+  return await confirm({ message });
+};
 const selectedFilesAndMoveToTmp = async (
   directory: string
 ): Promise<string[]> => {
@@ -43,4 +68,4 @@ const selectedFilesAndMoveToTmp = async (
   return resultPath;
 };
 
-export { selectExcelFiles, selectedFilesAndMoveToTmp };
+export { selectExcelFiles, selectedFilesAndMoveToTmp, ask, selectExcelFile };

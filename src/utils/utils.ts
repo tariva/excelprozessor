@@ -43,3 +43,13 @@ export async function exportFilteredExcel(
 // const configPath = 'path_to_your_config.json';
 // const outputPath = 'path_for_exported_excel.xlsx';
 // await exportFilteredExcel(jsonData, configPath, outputPath);
+export const getKeyForValue = (
+  obj: { [key: string]: string },
+  value: string
+): string | undefined => {
+  for (let key in obj) {
+    if (obj[key] === value) {
+      return key;
+    }
+  }
+};

@@ -1,21 +1,19 @@
 import path from "path";
 import fs from "fs-extra";
-import { Workbook } from "exceljs";
+import { Workbook, FillPattern } from "exceljs";
 import { ensureTmpDirectory, loadJSONConfig } from "./utils/fileHandler";
-import { selectedFilesAndMoveToTmp } from "./utils/cli";
-import { exportFilteredExcel } from "./utils/utils";
-
+import { selectedFilesAndMoveToTmp, ask, selectExcelFile } from "./utils/cli";
+import { exportFilteredExcel, getKeyForValue } from "./utils/utils";
 const CONFIG_DIR = path.join(process.cwd(), "config");
-
+const Excel_DIR = path.join(process.cwd(), "./");
 (async () => {
   await ensureTmpDirectory();
 
-  const sourceExcelPath = "./src/excel";
-  const workfiles = await selectedFilesAndMoveToTmp(sourceExcelPath);
+  const workfiles = await selectedFilesAndMoveToTmp(Excel_DIR);
   const jsonData: { [key: string]: any } = {};
   const config = loadJSONConfig(path.join(CONFIG_DIR, "config.json"));
   for (const filename of workfiles) {
-    await mergeExcelToJSON(jsonData, filename, config.adjustmentkeys);
+    await mergeExcelToJSON(jsonData, filename, config);
   }
 
   if (Object.keys(jsonData).length) {
@@ -24,14 +22,23 @@ const CONFIG_DIR = path.join(process.cwd(), "config");
     fs.writeFileSync(mergedFileName, JSON.stringify(jsonData, null, 2));
     console.log(`Merged data saved to ${mergedFileName}`);
   }
+  const exportExcel = await ask("Excel export?");
+  if (exportExcel) {
+    await exportFilteredExcel(jsonData, config.mapping, "output.xlsx");
+  }
+  const mergedWithTemplate = await ask("mit Template mergen?");
+  if (mergedWithTemplate) {
+    const template = await selectExcelFile(Excel_DIR);
+    await writeJsonToExcel(jsonData, template, config);
+  }
 
-  exportFilteredExcel(jsonData, config.mapping, "output.xlsx");
+  await ask("Press any key to exit...");
 })();
 
 async function mergeExcelToJSON(
   jsonData: any,
   filename: string,
-  adjustmentkeys: any
+  config: any
 ): Promise<void> {
   const workbook = new Workbook();
   await workbook.xlsx.readFile(filename);
@@ -40,7 +47,7 @@ async function mergeExcelToJSON(
 
   // Check if "Bezeichnung" column exists
   const hasBezeichnungColumn = worksheet.columns.some(
-    (col) => col.values && col.values.includes("Bezeichnung")
+    (col) => col.values && col.values.includes(config.keyColumn)
   );
 
   if (!hasBezeichnungColumn) {
@@ -56,7 +63,7 @@ async function mergeExcelToJSON(
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         const header = worksheet.getRow(1).getCell(colNumber).text;
         // custom import logic
-        if (adjustmentkeys.includes(header)) {
+        if (config.adjustmentkeys.includes(header)) {
           const value = cell.text;
           if (value === "" || value === null || parseFloat(value) > 999) {
             rowJSON[header] = "free";
@@ -90,4 +97,66 @@ async function mergeExcelToJSON(
       }
     }
   });
+}
+
+async function writeJsonToExcel(
+  inputJsonData: any,
+  excelPath: string,
+  config: any
+) {
+  // Open the target Excel
+  const workbook = new Workbook();
+  await workbook.xlsx.readFile(excelPath);
+  const worksheet = workbook.getWorksheet(config.worksheetName);
+
+  // Find the column with the content "Bezeichnung"
+  let bezeichnungColIndex = -1;
+  for (let col of worksheet.columns) {
+    if (col.values && getKeyForValue(config.mapping, config.keyColumn)) {
+      bezeichnungColIndex = col.number as number; // Get the column number
+      break;
+    }
+  }
+
+  if (bezeichnungColIndex === -1) {
+    console.error("Column with content 'Bezeichnung' not found.");
+    return;
+  }
+
+  const yellowFill: FillPattern = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFFFFF00" }, // Yellow color
+  };
+
+  let rowStartIndex = config.startindexTemplate; // Start from the 5th row
+  for (const key in inputJsonData) {
+    const data = inputJsonData[key];
+
+    if (data.Bezeichnung) {
+      const row = worksheet.getRow(rowStartIndex);
+
+      // Check for changes
+      for (const configKey in config.mapping) {
+        const colName = config.mapping[configKey];
+        const colIndex = worksheet.columns.findIndex(
+          (col) => col.values && col.values.includes(colName)
+        );
+        if (colIndex !== -1) {
+          const cell = row.getCell(colIndex + 1); // +1 because columns are 1-based in ExcelJS
+          if (cell.value !== data[colName]) {
+            console.log(
+              `Value changed in ${data.Bezeichnung} - ${colName}: ${cell.value} => ${data[colName]}`
+            );
+            cell.fill = yellowFill; // Highlight the cell with yellow
+          }
+          cell.value = data[colName]; // Update the value
+        }
+      }
+
+      rowStartIndex++; // Move to next row
+    }
+  }
+
+  await workbook.xlsx.writeFile(excelPath); // Save changes to Excel file
 }

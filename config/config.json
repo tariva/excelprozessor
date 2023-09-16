@@ -29,5 +29,8 @@
     "Spiel Y pos. [mm]",
     "Spiel Z neg. [mm]",
     "Spiel Z pos. [mm]"
-  ]
+  ],
+  "keyColumn": "Bezeichnung",
+  "worksheetName": "Rohrschellen",
+  "startindexTemplate": 5
 }
