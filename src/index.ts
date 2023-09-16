@@ -67,7 +67,13 @@ async function mergeExcelToJSON(
         // custom import logic
         if (config.adjustmentkeys.includes(header)) {
           const value = cell.text;
-          if (value === "" || value === null || parseFloat(value) > 999) {
+          if (
+            value === "" ||
+            value === null ||
+            parseFloat(value) > 999 ||
+            value === "999,9" ||
+            value === "999.9"
+          ) {
             rowJSON[header] = "free";
           } else {
             rowJSON[header] = cell.text;
@@ -106,22 +112,18 @@ async function writeJsonToExcel(
   excelPath: string,
   config: any
 ) {
-  // Open the target Excel
   const workbook = new Workbook();
   await workbook.xlsx.readFile(excelPath);
   const worksheet = workbook.getWorksheet(config.worksheetName);
   const idColKey = getKeyForValue(config.mapping, config.keyColumn);
-  // Find the column with the content of 'idColKey'
-  let idColIndex = -1;
-  for (let col of worksheet.columns) {
-    if (col.values && col.values.includes(idColKey)) {
-      idColIndex = col.number as number; // Get the column number
-      break;
-    }
-  }
+
+  // Find the column with the content from config
+  const idColIndex = worksheet.columns.findIndex(
+    (col) => col.values && col.values.includes(idColKey)
+  );
 
   if (idColIndex === -1) {
-    console.error(`Column with content  ${idColKey} not found.`);
+    console.error(`Column with content ${idColKey} not found.`);
     return;
   }
 
@@ -131,45 +133,46 @@ async function writeJsonToExcel(
     fgColor: { argb: "FFFFFF00" }, // Yellow color
   };
 
+  // Map column keys from the config to their indices in the worksheet
+  const colIndicesMap: { [key: string]: number } = {};
+  for (const configKey in config.mapping) {
+    colIndicesMap[configKey] = worksheet.columns.findIndex(
+      (col) => col.values && col.values.includes(configKey)
+    );
+  }
+
   for (const key in inputJsonData) {
     const data = inputJsonData[key];
 
-    // Find the correct row where 'idCol' value matches the key from inputJsonData
-    let matchedRow: Row | undefined = undefined;
+    let matchedRow: Row | undefined;
     worksheet.eachRow((row) => {
-      const cellValue = row.getCell(idColIndex).value;
-      if (cellValue === key) {
+      if (row.getCell(idColIndex + 1).value === key) {
         matchedRow = row;
-      } else {
-        matchedRow = undefined;
+        return; // exit the loop once matched
       }
     });
 
     if (!matchedRow) {
-      //console.warn(`No matching row found for key: ${key}`);
       continue;
     }
 
-    // Check for changes
     for (const configKey in config.mapping) {
       const colName = config.mapping[configKey];
-      const colIndex = worksheet.columns.findIndex(
-        (col) => col.values && col.values.includes(configKey)
-      );
+      const colIndex = colIndicesMap[configKey];
       if (colIndex !== -1) {
-        const cell = (matchedRow as Row).getCell(colIndex + 1); // +1 because columns are 1-based in ExcelJS
+        const cell = matchedRow.getCell(colIndex + 1);
         if (cell.value !== data[colName]) {
           console.log(
             `Value changed in ${
               data[config.keyColumn]
             } - ${colName}-${configKey}:: ${cell.value} => ${data[colName]}`
           );
-          cell.fill = yellowFill; // Highlight the cell with yellow
+          cell.fill = yellowFill;
         }
-        cell.value = data[colName]; // Update the value
+        cell.value = data[colName];
       }
     }
   }
 
-  await workbook.xlsx.writeFile(excelPath); // Save changes to Excel file
+  await workbook.xlsx.writeFile(excelPath);
 }
