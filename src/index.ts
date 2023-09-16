@@ -1,8 +1,13 @@
-console.log("Hello from TypeScript!");
-function greet(name: string): string {
-  return `Hello, ${name}!`;
-}
+import fs from "fs-extra";
+import ExcelJS from "exceljs";
+import { ensureTmpDirectory, copyToTmp } from "./utils/fileHandler";
+import { selectedFilesAndMoveToTmp } from "./utils/cli";
+(async () => {
+  await ensureTmpDirectory();
 
-const user = "TypeScript User";
+  const sourceExcelPath = "./src/excel";
+  await selectedFilesAndMoveToTmp(sourceExcelPath);
 
-console.log(greet(user));
+  // For demonstration, you can call manipulateExcelData with the path to your copied Excel file in tmp
+  // await manipulateExcelData(tmpExcelPath);
+})();

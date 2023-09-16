@@ -133,3 +133,5 @@ original/sorger-starre-stützen.csv
 excelprozessor-win.exe
 excelprozessor-macos
 excelprozessor-linux
+src/excel/sorger-lagerbelastungen.csv
+src/excel/sorger-starre-stützen.csv
