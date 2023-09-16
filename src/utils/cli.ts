@@ -25,18 +25,22 @@ const selectExcelFiles = async (directory: string): Promise<string[]> => {
   return selectedFiles;
 };
 
-const selectedFilesAndMoveToTmp = async (directory: string) => {
+const selectedFilesAndMoveToTmp = async (
+  directory: string
+): Promise<string[]> => {
   const selectedFiles = await selectExcelFiles(directory);
-
+  const resultPath = [];
   for (const file of selectedFiles) {
     const filePath = path.join(directory, file);
     const tmpPath = await copyToTmp(filePath);
 
     if (tmpPath) {
+      resultPath.push(tmpPath);
       console.log(`File ${file} copied to tmp directory at path: ${tmpPath}`);
       // Here you can further process the Excel file in tmpPath if needed
     }
   }
+  return resultPath;
 };
 
 export { selectExcelFiles, selectedFilesAndMoveToTmp };
