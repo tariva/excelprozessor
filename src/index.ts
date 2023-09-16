@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs-extra";
-import { Workbook, FillPattern } from "exceljs";
+import { Workbook, FillPattern, Row } from "exceljs";
 import { ensureTmpDirectory, loadJSONConfig } from "./utils/fileHandler";
 import { selectedFilesAndMoveToTmp, ask, selectExcelFile } from "./utils/cli";
 import { exportFilteredExcel, getKeyForValue } from "./utils/utils";
@@ -45,13 +45,15 @@ async function mergeExcelToJSON(
 
   const worksheet = workbook.worksheets[0]; // Assuming data is in the first worksheet
 
-  // Check if "Bezeichnung" column exists
-  const hasBezeichnungColumn = worksheet.columns.some(
+  // Check if idcolumn exists
+  const hasIdCol = worksheet.columns.some(
     (col) => col.values && col.values.includes(config.keyColumn)
   );
 
-  if (!hasBezeichnungColumn) {
-    console.warn(`File ${filename} does not have a "Bezeichnung" column.`);
+  if (!hasIdCol) {
+    console.warn(
+      `File ${filename} does not have a ${config.keyColumn}  column.`
+    );
     return;
   }
 
@@ -75,7 +77,7 @@ async function mergeExcelToJSON(
         }
       });
 
-      const key = rowJSON.Bezeichnung;
+      const key = rowJSON[config.keyColumn];
 
       if (jsonData[key]) {
         // Check for mismatched data or new columns to add
@@ -108,18 +110,18 @@ async function writeJsonToExcel(
   const workbook = new Workbook();
   await workbook.xlsx.readFile(excelPath);
   const worksheet = workbook.getWorksheet(config.worksheetName);
-
-  // Find the column with the content "Bezeichnung"
-  let bezeichnungColIndex = -1;
+  const idColKey = getKeyForValue(config.mapping, config.keyColumn);
+  // Find the column with the content of 'idColKey'
+  let idColIndex = -1;
   for (let col of worksheet.columns) {
-    if (col.values && getKeyForValue(config.mapping, config.keyColumn)) {
-      bezeichnungColIndex = col.number as number; // Get the column number
+    if (col.values && col.values.includes(idColKey)) {
+      idColIndex = col.number as number; // Get the column number
       break;
     }
   }
 
-  if (bezeichnungColIndex === -1) {
-    console.error("Column with content 'Bezeichnung' not found.");
+  if (idColIndex === -1) {
+    console.error(`Column with content  ${idColKey} not found.`);
     return;
   }
 
@@ -129,32 +131,43 @@ async function writeJsonToExcel(
     fgColor: { argb: "FFFFFF00" }, // Yellow color
   };
 
-  let rowStartIndex = config.startindexTemplate; // Start from the 5th row
   for (const key in inputJsonData) {
     const data = inputJsonData[key];
 
-    if (data.Bezeichnung) {
-      const row = worksheet.getRow(rowStartIndex);
-
-      // Check for changes
-      for (const configKey in config.mapping) {
-        const colName = config.mapping[configKey];
-        const colIndex = worksheet.columns.findIndex(
-          (col) => col.values && col.values.includes(colName)
-        );
-        if (colIndex !== -1) {
-          const cell = row.getCell(colIndex + 1); // +1 because columns are 1-based in ExcelJS
-          if (cell.value !== data[colName]) {
-            console.log(
-              `Value changed in ${data.Bezeichnung} - ${colName}: ${cell.value} => ${data[colName]}`
-            );
-            cell.fill = yellowFill; // Highlight the cell with yellow
-          }
-          cell.value = data[colName]; // Update the value
-        }
+    // Find the correct row where 'idCol' value matches the key from inputJsonData
+    let matchedRow: Row | undefined = undefined;
+    worksheet.eachRow((row) => {
+      const cellValue = row.getCell(idColIndex).value;
+      if (cellValue === key) {
+        matchedRow = row;
+      } else {
+        matchedRow = undefined;
       }
+    });
 
-      rowStartIndex++; // Move to next row
+    if (!matchedRow) {
+      //console.warn(`No matching row found for key: ${key}`);
+      continue;
+    }
+
+    // Check for changes
+    for (const configKey in config.mapping) {
+      const colName = config.mapping[configKey];
+      const colIndex = worksheet.columns.findIndex(
+        (col) => col.values && col.values.includes(configKey)
+      );
+      if (colIndex !== -1) {
+        const cell = (matchedRow as Row).getCell(colIndex + 1); // +1 because columns are 1-based in ExcelJS
+        if (cell.value !== data[colName]) {
+          console.log(
+            `Value changed in ${
+              data[config.keyColumn]
+            } - ${colName}-${configKey}:: ${cell.value} => ${data[colName]}`
+          );
+          cell.fill = yellowFill; // Highlight the cell with yellow
+        }
+        cell.value = data[colName]; // Update the value
+      }
     }
   }
 
