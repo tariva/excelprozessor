@@ -1,13 +1,9 @@
 import path from "path";
 import fs from "fs-extra";
-import ExcelJS from "exceljs";
 import { Workbook } from "exceljs";
-import {
-  ensureTmpDirectory,
-  copyToTmp,
-  loadJSONConfig,
-} from "./utils/fileHandler";
+import { ensureTmpDirectory, loadJSONConfig } from "./utils/fileHandler";
 import { selectedFilesAndMoveToTmp } from "./utils/cli";
+import { exportFilteredExcel } from "./utils/utils";
 
 const CONFIG_DIR = path.join(process.cwd(), "config");
 
@@ -17,9 +13,9 @@ const CONFIG_DIR = path.join(process.cwd(), "config");
   const sourceExcelPath = "./src/excel";
   const workfiles = await selectedFilesAndMoveToTmp(sourceExcelPath);
   const jsonData: { [key: string]: any } = {};
-
+  const config = loadJSONConfig(path.join(CONFIG_DIR, "config.json"));
   for (const filename of workfiles) {
-    await mergeExcelToJSON(jsonData, filename);
+    await mergeExcelToJSON(jsonData, filename, config.adjustmentkeys);
   }
 
   if (Object.keys(jsonData).length) {
@@ -29,13 +25,13 @@ const CONFIG_DIR = path.join(process.cwd(), "config");
     console.log(`Merged data saved to ${mergedFileName}`);
   }
 
-  const config = loadJSONConfig(path.join(CONFIG_DIR, "config.json"));
-  console.log(config);
+  exportFilteredExcel(jsonData, config.mapping, "output.xlsx");
 })();
 
 async function mergeExcelToJSON(
   jsonData: any,
-  filename: string
+  filename: string,
+  adjustmentkeys: any
 ): Promise<void> {
   const workbook = new Workbook();
   await workbook.xlsx.readFile(filename);
@@ -60,8 +56,16 @@ async function mergeExcelToJSON(
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         const header = worksheet.getRow(1).getCell(colNumber).text;
         // custom import logic
-
-        rowJSON[header] = cell.text;
+        if (adjustmentkeys.includes(header)) {
+          const value = cell.text;
+          if (value === "" || value === null || parseFloat(value) > 999) {
+            rowJSON[header] = "free";
+          } else {
+            rowJSON[header] = cell.text;
+          }
+        } else {
+          rowJSON[header] = cell.text;
+        }
       });
 
       const key = rowJSON.Bezeichnung;

@@ -138,3 +138,5 @@ original/*.xlsx
 src/excel/*.xlsx
 tmp/*.xlsx
 merged_data.json
+*.xlsx
+*.exe

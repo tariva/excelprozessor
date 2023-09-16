@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import path from "path";
 import { copyToTmp } from "./fileHandler";
-import checkbox, { Separator } from "@inquirer/checkbox";
+import checkbox from "@inquirer/checkbox";
 
 const selectExcelFiles = async (directory: string): Promise<string[]> => {
   const files = await fs.readdir(directory);
