@@ -136,3 +136,5 @@ src/excel/*.csv
 src/excel/sorger-starre-stützen.csv
 original/*.xlsx
 src/excel/*.xlsx
+tmp/*.xlsx
+merged_data.json

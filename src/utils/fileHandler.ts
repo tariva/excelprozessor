@@ -1,7 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
-
-const TMP_DIR = path.join(__dirname, "tmp");
+const TMP_DIR = path.join(process.cwd(), "tmp");
 
 const ensureTmpDirectory = async (): Promise<void> => {
   try {
@@ -22,4 +21,26 @@ const copyToTmp = async (sourcePath: string): Promise<string | null> => {
   }
 };
 
-export { ensureTmpDirectory, copyToTmp };
+/**
+ * Load a JSON configuration file.
+ *
+ * @param {string} filePath - The path to the JSON configuration file.
+ * @returns {any} - The parsed JSON content of the configuration file.
+ */
+const loadJSONConfig = (filePath: string): any => {
+  // Ensure the file exists
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Config file not found at path: ${filePath}`);
+  }
+
+  // Read and parse the file
+  const rawContent = fs.readFileSync(filePath, "utf-8");
+  return JSON.parse(rawContent);
+};
+
+// Example usage (for testing)
+// const configPath = path.join(__dirname, 'path_to_config.json');
+// const config = loadJSONConfig(configPath);
+// console.log(config);
+
+export { ensureTmpDirectory, copyToTmp, loadJSONConfig };
