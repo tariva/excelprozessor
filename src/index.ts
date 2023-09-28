@@ -127,12 +127,6 @@ async function writeJsonToExcel(
     return;
   }
 
-  const yellowFill: FillPattern = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFFFFF00" }, // Yellow color
-  };
-
   // Map column keys from the config to their indices in the worksheet
   const colIndicesMap: { [key: string]: number } = {};
   for (const configKey in config.mapping) {
@@ -167,7 +161,7 @@ async function writeJsonToExcel(
               data[config.keyColumn]
             } - ${colName}-${configKey}:: ${cell.value} => ${data[colName]}`
           );
-          cell.fill = yellowFill;
+          // cell.fill = yellowFill;
         }
         cell.value = data[colName];
       }
