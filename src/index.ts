@@ -16,8 +16,8 @@ async function simpleCopyTest() {
   await ensureTmpDirectory();
   const config = loadJSONConfig(path.join(CONFIG_DIR, "config.json"));
 
-  const sourceFile = await selectExcelFile(Excel_DIR, config.sourceFile);
-  const destinationFile = await selectExcelFile(Excel_DIR, config.destFile);
+  const sourceFile = await selectExcelFile(Excel_DIR, "Wählen Sie die zu verarbeitende Quell Excel-Datei aus:", config.sourceFile);
+  const destinationFile = await selectExcelFile(Excel_DIR, "Wählen Sie die zu verarbeitende Ziel Excel-Datei aus:", config.destFile);
 
   await mergeExcelFiles(sourceFile, destinationFile, config);
 

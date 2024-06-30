@@ -1,13 +1,14 @@
 import fs from "fs-extra";
 import path from "path";
 import json5 from "json5";
+
 const TMP_DIR = path.join(process.cwd(), "tmp");
 
 const ensureTmpDirectory = async (): Promise<void> => {
   try {
     await fs.ensureDir(TMP_DIR);
   } catch (error) {
-    console.error("Error ensuring tmp directory:", error);
+    console.error("Fehler beim Erstellen des tmp-Verzeichnisses:", error);
   }
 };
 
@@ -17,7 +18,7 @@ const copyToTmp = async (sourcePath: string): Promise<string | null> => {
     await fs.copy(sourcePath, destinationPath);
     return destinationPath;
   } catch (error) {
-    console.error("Error copying file to tmp:", error);
+    handleFileError(error, sourcePath);
     return null;
   }
 };
@@ -29,15 +30,30 @@ const copyToTmp = async (sourcePath: string): Promise<string | null> => {
  * @returns {any} - The parsed JSON content of the configuration file.
  */
 const loadJSONConfig = (filePath: string): any => {
-  // Ensure the file exists
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Config file not found at path: ${filePath}`);
-  }
+  try {
+    // Ensure the file exists
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Konfigurationsdatei nicht gefunden: ${filePath}`);
+    }
 
-  // Read and parse the file
-  const rawContent = fs.readFileSync(filePath, "utf-8");
-  return json5.parse(rawContent);
+    // Read and parse the file
+    const rawContent = fs.readFileSync(filePath, "utf-8");
+    return json5.parse(rawContent);
+  } catch (error) {
+    console.error("Fehler beim Laden der Konfigurationsdatei:", error);
+    throw error;
+  }
 };
+
+function handleFileError(err: any, filePath: string) {
+  if (err.code === 'EBUSY') {
+    console.error(`Fehler: Ressource ist beschäftigt oder gesperrt. Kann die Datei nicht öffnen: ${filePath}`);
+  } else if (err.code === 'ENOENT') {
+    console.error(`Fehler: Datei nicht gefunden: ${filePath}`);
+  } else {
+    console.error(`Fehler beim Zugriff auf die Datei ${filePath}:`, err);
+  }
+}
 
 // Example usage (for testing)
 // const configPath = path.join(__dirname, 'path_to_config.json');
