@@ -26,7 +26,7 @@ const selectExcelFiles = async (directory: string): Promise<string[]> => {
 
   return selectedFiles;
 };
-const selectExcelFile = async (directory: string): Promise<string> => {
+const selectExcelFile = async (directory: string, fileName?: string): Promise<string> => {
   const files = await fs.readdir(directory);
   const excelFiles = files.filter(
     (file) =>
@@ -39,7 +39,13 @@ const selectExcelFile = async (directory: string): Promise<string> => {
   }
 
   const choices = excelFiles.map((file) => ({ name: file, value: file }));
-
+  // filter by filename if provided
+  if (fileName) {
+    const filteredChoices = choices.filter((choice) => choice.value === fileName);
+    if (filteredChoices.length) {
+      return filteredChoices[0].value;
+    }
+  }
   const selectedFiles = await select({
     message: "Select Excel files to process:",
     choices: choices,
@@ -54,7 +60,7 @@ const selectedFilesAndMoveToTmp = async (
   directory: string
 ): Promise<string[]> => {
   const selectedFiles = await selectExcelFiles(directory);
-  const resultPath = [];
+  const resultPath: string[] = [];
   for (const file of selectedFiles) {
     const filePath = path.join(directory, file);
     const tmpPath = await copyToTmp(filePath);

@@ -4,9 +4,32 @@ import { Workbook, FillPattern, Row } from "exceljs";
 import { ensureTmpDirectory, loadJSONConfig } from "./utils/fileHandler";
 import { selectedFilesAndMoveToTmp, ask, selectExcelFile } from "./utils/cli";
 import { exportFilteredExcel, getKeyForValue } from "./utils/utils";
+import { convertExcelToJson, mergeExcelFiles } from "./utils/simpleCopy";
 const CONFIG_DIR = path.join(process.cwd(), "config");
 const Excel_DIR = path.join(process.cwd(), "./");
+
 (async () => {
+  //old();
+  await simpleCopyTest();
+})();
+async function simpleCopyTest() {
+  await ensureTmpDirectory();
+  const config = loadJSONConfig(path.join(CONFIG_DIR, "config.json"));
+
+  const sourceFile = await selectExcelFile(Excel_DIR, config.sourceFile);
+  const destinationFile = await selectExcelFile(Excel_DIR, config.destFile);
+
+  await mergeExcelFiles(sourceFile, destinationFile, config);
+
+  const exportExcel = await ask("Excel export?");
+  if (exportExcel) {
+    const mergedData = await convertExcelToJson(destinationFile, config);
+    await exportFilteredExcel(mergedData, config.mapping, "output.xlsx");
+  }
+
+  await ask("Press any key to exit...");
+};
+async function old() {
   await ensureTmpDirectory();
 
   const workfiles = await selectedFilesAndMoveToTmp(Excel_DIR);
@@ -33,7 +56,7 @@ const Excel_DIR = path.join(process.cwd(), "./");
   }
 
   await ask("Press any key to exit...");
-})();
+};
 
 async function mergeExcelToJSON(
   jsonData: any,
@@ -157,8 +180,7 @@ async function writeJsonToExcel(
         const cell = matchedRow.getCell(colIndex + 1);
         if (cell.value !== data[colName]) {
           console.log(
-            `Value changed in ${
-              data[config.keyColumn]
+            `Value changed in ${data[config.keyColumn]
             } - ${colName}-${configKey}:: ${cell.value} => ${data[colName]}`
           );
           // cell.fill = yellowFill;

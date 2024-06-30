@@ -1,36 +1,22 @@
 {
   "mapping": {
-    "KNOT_P": "Knotenname",
-    "L_STP": "Stütztyp",
-    "MR_BQ": "Bezeichnung",
-    "M40": "WX [mm]",
-    "M41": "WY [mm]",
-    "M42": "WZ [mm]",
-    "M43": "PX [grd]",
-    "M44": "PY [grd]",
-    "M45": "PZ [grd]",
-    "M46": "QX [kN]",
-    "M47": "QY [kN]",
-    "M48": "QZ [kN]",
-    "M49": "MX [kNm]",
-    "M50": "MY [kNm]",
-    "M51": "MZ [kNm]",
-    "M20_1": "Spiel X neg. [mm]",
-    "M20": "Spiel X pos. [mm]",
-    "M21_1": "Spiel Y neg. [mm]",
-    "M21": "Spiel Y pos. [mm]",
-    "M22_1": "Spiel Z neg. [mm]",
-    "M22": "Spiel Z pos. [mm]"
+    // links: Spaltenüberschriften in der Quelldatei, rechts: Spaltenüberschriften in der Zieldatei
+    "M11": "M11",
+    "M9": "M9",
+    "S21": "S21",
+    "S22": "S22",
+    "STR": "STR",
+    "M10": "M10"
   },
-  "adjustmentkeys": [
-    "Spiel X neg. [mm]",
-    "Spiel X pos. [mm]",
-    "Spiel Y neg. [mm]",
-    "Spiel Y pos. [mm]",
-    "Spiel Z neg. [mm]",
-    "Spiel Z pos. [mm]"
-  ],
-  "keyColumn": "Bezeichnung",
-  "worksheetName": "Rohrschellen",
-  "startindexTemplate": 5
+  "sourceFile": "ATMOSA-RoLI-20240603-5.xlsx", // Quelldatei
+  "destFile": "VORLAGE-ATMOSA-IMPORT-EXPORT.xlsx", // Zieldatei
+  "adjustmentkeys": [], // für altes System
+  "keyColumn": "STR", // Wert, der in der Quelldatei mit dem Wert in der Zieldatei verglichen wird
+  "worksheetName": "Rohrschellen", // für altes System
+  "sourceMappingRow": 1, // Zeile in der Quelldatei, in der die Spaltenüberschriften stehen
+  "sourceStartDataRow": 3, // Zeile in der Quelldatei, ab der die Daten gelesen werden
+  "sourceWorksheetName": "RoLI", // Tabellenblattname in der Quelldatei
+  "destMappingRow": 2, // Zeile in der Zieldatei, in der die Spaltenüberschriften stehen
+  "destStartDataRow": 5, // Zeile in der Zieldatei, ab der die Daten eingefügt werden
+  "destWorksheetName": "Rohr_RH" // Tabellenblattname in der Zieldatei
 }

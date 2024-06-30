@@ -1,5 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
+import json5 from "json5";
 const TMP_DIR = path.join(process.cwd(), "tmp");
 
 const ensureTmpDirectory = async (): Promise<void> => {
@@ -35,7 +36,7 @@ const loadJSONConfig = (filePath: string): any => {
 
   // Read and parse the file
   const rawContent = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(rawContent);
+  return json5.parse(rawContent);
 };
 
 // Example usage (for testing)
